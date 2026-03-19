@@ -15,7 +15,8 @@ dependencies = [
 ]
 
 [tool.poetry]
-packages = [{include = "projeto-diario-oficial"}]
+# Desabilitamos a instalação do raiz para que funcione em ambientes de CI limpos
+# packages = [{include = "projeto-diario-oficial"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd backend
-          poetry install
+          poetry install --no-root
           
       - name: Run Flake8
         run: |
