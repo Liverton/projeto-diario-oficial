@@ -1,22 +1,20 @@
 import os
-import environ # Importa o django-environ que instalamos via poetry
+import environ  # Importa o django-environ que instalamos via poetry
 from pathlib import Path
 
 # Inicializa o environ
-env = environ.Env(
-    DEBUG=(bool, False) # Define False como padrão para segurança
-)
+env = environ.Env(DEBUG=(bool, False))  # Define False como padrão para segurança
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Lê o arquivo .env localizado na raiz do backend
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # Agora usamos o env() para capturar os dados do arquivo .env
-SECRET_KEY = env('SECRET_KEY')
-DEBUG = env('DEBUG')
+SECRET_KEY = env("SECRET_KEY")
+DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
 
 # Application definition
@@ -28,12 +26,15 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
+    "corsheaders",
     "diario_oficial",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -67,11 +68,9 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 env = environ.Env()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-DATABASES = {
-    'default': env.db('DATABASE_URL')
-}
+DATABASES = {"default": env.db("DATABASE_URL")}
 
 
 # Password validation
@@ -96,9 +95,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'pt-br' # Interface em Português
+LANGUAGE_CODE = "pt-br"  # Interface em Português
 
-TIME_ZONE = 'America/Sao_Paulo' # Horário de Brasília
+TIME_ZONE = "America/Sao_Paulo"  # Horário de Brasília
 
 USE_I18N = True
 
@@ -114,3 +113,4 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+CORS_ALLOW_ALL_ORIGINS = True

@@ -1,3 +1,14 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+from .models import Edicao, Materia
+from .serializers import EdicaoSerializer, MateriaSerializer
 
-# Create your views here.
+
+class EdicaoViewSet(viewsets.ModelViewSet):
+    # Ordenamos pela data mais recente para o Diário Oficial
+    queryset = Edicao.objects.all().order_by("-data_publicacao")
+    serializer_class = EdicaoSerializer
+
+
+class MateriaViewSet(viewsets.ModelViewSet):
+    queryset = Materia.objects.all()
+    serializer_class = MateriaSerializer

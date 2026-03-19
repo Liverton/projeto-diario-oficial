@@ -14,69 +14,74 @@ Sistema de gerenciamento, composição e publicação de atos oficiais.
 
 Siga este passo a passo caso esteja baixando o projeto pela primeira vez em um novo computador com **Linux**.
 
-1. Ferramentas Básicas do Sistema
-Antes de tudo, garanta que o sistema possui o básico para comunicação e download:
+## Ferramentas Básicas do Sistema
+### Antes de tudo, garanta que o sistema possui o básico para comunicação e download:
 
 ```bash
 sudo apt update
 sudo apt install -y git curl build-essential libpq-dev
 ```
 
-2. Clonando o repositório
+## Clonando o repositório
 
 ```bash
 git clone [https://github.com/seu-usuario/projeto-diario-oficial.git](https://github.com/seu-usuario/projeto-diario-oficial.git)
 cd projeto-diario-oficial
 ```
 
-3. Configurando o Python & Backend (Poetry)
+## Configurando o Python & Backend (Poetry)
 
-# Instala o Poetry
+### Instala o Poetry
 ```bash
 curl -sSL [https://install.python-poetry.org](https://install.python-poetry.org) | python3 -
 ```
 
-# Adiciona o Poetry ao seu PATH (caso acabe de instalar)
+### Adiciona o Poetry ao seu PATH (caso acabe de instalar)
+
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-# Entra no backend e instala as dependências
+### Entra no backend e instala as dependências
+
 ```bash
 cd backend
 poetry install
 ```
 
-4. Configurando o Node.js & Frontend (NVM)
-Usamos o NVM para gerenciar a versão exata do Node (v22) exigida pelo Vite.
+## Configurando o Node.js & Frontend (NVM)
+### Usamos o NVM para gerenciar a versão exata do Node (v22) exigida pelo Vite.
 
-# Instala o NVM
+### Instala o NVM
+
 ```bash
 curl -o- [https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh]
 source ~/.bashrc # Recarrega o terminal
 ```
 
-# Instala e usa o Node 22
+### Instala e usa o Node 22
+
 ```bash
 nvm install 22
 nvm use 22
 ```
 
-# Instala dependências do React
+### Instala dependências do React
+
 ```bash
 cd ../frontend
 npm install
 ```
 
-5. Configuração de Ambiente (.env)
-O arquivo de segredos não é versionado. Crie um novo na pasta backend/:
+## Configuração de Ambiente (.env)
+### O arquivo de segredos não é versionado. Crie um novo na pasta backend/:
 
 ```bash
 cd ../backend
 touch .env
 ```
 
-# Conteúdo sugerido para o .env:
+### Conteúdo sugerido para o .env:
 
 ```bash
 DEBUG=True
@@ -85,30 +90,30 @@ DATABASE_URL=postgres://dpes_user:dpes_pass@localhost:5432/diario_db
 ALLOWED_HOSTS=*
 ```
 
-6. Subindo os Contêineres
-Na raiz do projeto, suba o Banco de Dados e o container do Django:
+## Subindo os Contêineres
+### Na raiz do projeto, suba o Banco de Dados e o container do Django:
 
 ```bash
 cd ..
 docker compose up -d --build
 ```
 
-7. Migrações e Admin
-Após subir os containers, rode as migrações iniciais e crie o superusuário:
+## Migrações e Admin
+### Após subir os containers, rode as migrações iniciais e crie o superusuário:
 
-# Cria as tabelas do Diário Oficial
+### Cria as tabelas do Diário Oficial
 
 ```bash
 docker compose exec backend python manage.py migrate
 ```
 
-# Cria seu usuário de acesso ao Painel
+### Cria seu usuário de acesso ao Painel
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
 ```
 
-8. Acessando o Sistema
+## Acessando o Sistema
 Backend (Django Admin): http://localhost:8000/admin/
 Frontend (React): http://localhost:5173/
 
@@ -120,9 +125,9 @@ Nova Migração           docker compose exec backend python manage.py makemigra
 Ver Logs                docker compose logs -f backend
 Atualizar Código        git pull origin main
 
-### Rotina GIT
+# Rotina GIT
 
-# 1. Veja o que você alterou
+## 1. Veja o que você alterou
 ```bash
 git status
 ```
@@ -132,15 +137,24 @@ git status
 git add .
 ```
 
-# 3. Salve com uma mensagem clara
+# 3. Salve com Mensagem Padronizada
+Usamos o padrão **Conventional Commits**:
+- `feat:` Nova funcionalidade
+- `fix:` Correção de erro
+- `docs:` Mudanças na documentação
+- `style:` Formatação ou visual
+- `refactor:` Melhora no código (sem mudar função)
+
 ```bash
 git commit -m "feat: implementa listagem de edições no frontend"
 ```
 
 # 4. Envie para o GitHub
+Sempre envie para sua branch de trabalho, NUNCA direto para a `main`.
 ```bash
-git push origin main
+git push origin feature/nome-da-sua-branch
 ```
+Depois, abra um **Pull Request** no GitHub para a `main`.
 
 Se você já clonou o projeto em casa anteriormente, você não clona de novo, você apenas atualiza.
 
@@ -180,8 +194,12 @@ Boa Prática: Terminou uma portaria? git commit. Ajustou um botão no React? git
 Exemplo de Alternativa: Se estiver testando algo arriscado, crie uma branch: git checkout -b teste-novo-layout. Se não prestar, você volta para a main e apaga a branch sem medo.
 
 🏁 Fim do Expediente: O "Check-out"
-git status: Verifique se esqueceu algum arquivo novo sem adicionar.
+1. `git status`: Verifique se esqueceu algo.
+2. `git push origin feature/sua-branch`: Envia seu progresso.
+3. Se o código estiver estável, abra um PR.
+4. `docker compose down`: Libera a memória RAM.
 
-git push origin main: Envia seu progresso.
-
-docker compose down: Libera a memória RAM do seu Zorin fechando os containers.
+### 🛡️ Padrões de Qualidade (CI)
+Temos automações que verificam o código em cada Merge Request:
+- **Backend:** `flake8` - Rodar local: `cd backend && poetry run flake8 .`
+- **Frontend:** `ESLint` - Rodar local: `cd frontend && npm run lint`
