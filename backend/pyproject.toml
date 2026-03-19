@@ -1,0 +1,26 @@
+[project]
+name = "projeto-diario-oficial"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Liverton Abreu"}
+]
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "django (==4.2.11)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
+    "django-environ (>=0.13.0,<0.14.0)"
+]
+
+[tool.poetry]
+packages = [{include = "projeto-diario-oficial"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "black (>=26.3.1,<27.0.0)",
+    "flake8 (>=7.3.0,<8.0.0)"
+]

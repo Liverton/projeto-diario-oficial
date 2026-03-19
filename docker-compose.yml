@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=diario_db
+      - POSTGRES_USER=dpes_admin
+      - POSTGRES_PASSWORD=dpes_senha_forte
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://dpes_admin:dpes_senha_forte@db:5432/diario_db
+
+volumes:
+  postgres_data:
