@@ -7,7 +7,7 @@ interface Materia {
   id: number;
   titulo: string;
   conteudo: string;
-  categoria: string;
+  setor: string;
   criado_em: string;
 }
 
@@ -24,8 +24,30 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [edicaoSelecionada, setEdicaoSelecionada] = useState<Edicao | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formMateria, setFormMateria] = useState({
+    titulo: '',
+    conteudo: '',
+    setor: 'Recursos Humanos'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchEdicoes = (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    api.get('edicoes/')
+      .then(response => {
+        setEdicoes(response.data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Erro ao buscar edições:", error);
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
-    // Função que busca os dados no Django
+    // Busca inicial
     api.get('edicoes/')
       .then(response => {
         setEdicoes(response.data);
@@ -36,6 +58,31 @@ function App() {
         setLoading(false);
       });
   }, []);
+
+  const handleSubmitMateria = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!edicaoSelecionada) return;
+
+    setIsSubmitting(true);
+    api.post('materias/', {
+      ...formMateria,
+      edicao: edicaoSelecionada.id
+    })
+    .then(() => {
+      // Limpa formulário e fecha
+      setFormMateria({ titulo: '', conteudo: '', setor: 'Recursos Humanos' });
+      setShowForm(false);
+      setEdicaoSelecionada(null);
+      // Atualiza lista
+      fetchEdicoes();
+    })
+    .catch(error => {
+      console.error("Erro ao lançar matéria:", error);
+    })
+    .finally(() => {
+      setIsSubmitting(false);
+    });
+  };
 
   // Lógica de filtro: filtra por número da edição ou por título das matérias
   const edicoesFiltradas = useMemo(() => {
@@ -55,7 +102,7 @@ function App() {
     });
   }, [searchTerm, edicoes]);
 
-  if (loading) {
+  if (loading && edicoes.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center">
@@ -134,11 +181,6 @@ function App() {
           <ul className="divide-y divide-gray-100">
             {edicoesFiltradas.length > 0 ? (
               edicoesFiltradas.map(edicao => {
-                const searchLower = searchTerm.toLowerCase();
-                const materiasCorrespondentes = searchTerm 
-                  ? edicao.materias?.filter(m => m.titulo.toLowerCase().includes(searchLower))
-                  : [];
-
                 return (
                   <li key={edicao.id} className="px-8 py-7 hover:bg-gray-50/50 transition-all duration-200 group">
                     <div className="flex items-start justify-between">
@@ -154,13 +196,13 @@ function App() {
                         </div>
                         
                         {/* Seção de Matérias Encontradas */}
-                        {materiasCorrespondentes.length > 0 && (
+                        {edicao.materias?.length > 0 && (
                           <div className="mt-4 space-y-3">
                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                              Matérias correspondentes:
+                              Matérias na edição:
                             </h4>
                             <div className="space-y-2">
-                              {materiasCorrespondentes.map(m => (
+                              {edicao.materias.map(m => (
                                 <div key={m.id} className="flex items-center p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50 group/item">
                                   <div className="h-2 w-2 bg-indigo-500 rounded-full mr-3"></div>
                                   <span className="text-sm font-medium text-gray-700 leading-tight">
@@ -184,12 +226,25 @@ function App() {
                             FECHADA
                           </span>
                         )}
-                        <button className="mt-4 text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center transition-colors">
-                          Acessar Edição
-                          <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
+                        <div className="mt-4 flex flex-col space-y-2">
+                          {edicao.esta_aberta && (
+                            <button 
+                              onClick={() => {
+                                setEdicaoSelecionada(edicao);
+                                setShowForm(true);
+                              }}
+                              className="text-xs font-bold uppercase tracking-wider px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                            >
+                              Lançar Matéria
+                            </button>
+                          )}
+                          <button className="text-sm font-semibold text-gray-600 hover:text-indigo-600 flex items-center justify-end transition-colors">
+                            Ver Edição
+                            <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </li>
@@ -223,6 +278,91 @@ function App() {
           </ul>
         </div>
       </div>
+
+      {/* Modal / Slide-over de Lançamento de Matéria */}
+      {showForm && edicaoSelecionada && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" onClick={() => setShowForm(false)}></div>
+          
+          <div className="absolute inset-y-0 right-0 max-w-lg w-full bg-white shadow-2xl flex flex-col animate-slide-in">
+            <div className="px-8 py-6 bg-indigo-600 text-white flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Lançar Matéria</h2>
+                <p className="text-indigo-100 text-sm">Edição #{edicaoSelecionada.numero}</p>
+              </div>
+              <button 
+                onClick={() => setShowForm(false)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitMateria} className="flex-1 overflow-y-auto p-8 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Título da Matéria</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
+                  placeholder="Ex: Nomeação de Servidores..."
+                  value={formMateria.titulo}
+                  onChange={e => setFormMateria({...formMateria, titulo: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Setor</label>
+                <select 
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
+                  value={formMateria.setor}
+                  onChange={e => setFormMateria({...formMateria, setor: e.target.value})}
+                >
+                  <option value="Recursos Humanos">Recursos Humanos</option>
+                  <option value="Jurídico">Jurídico</option>
+                  <option value="Financeiro">Financeiro</option>
+                  <option value="Comunicação">Comunicação</option>
+                  <option value="Gabinete">Gabinete</option>
+                </select>
+              </div>
+
+              <div className="flex-1 flex flex-col">
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Conteúdo</label>
+                <textarea 
+                  required
+                  className="flex-1 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all min-h-[300px] resize-none"
+                  placeholder="Descreva aqui o conteúdo completo da portaria ou informativo..."
+                  value={formMateria.conteudo}
+                  onChange={e => setFormMateria({...formMateria, conteudo: e.target.value})}
+                ></textarea>
+              </div>
+
+              <div className="pt-6 border-t border-gray-100 flex space-x-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 px-6 py-4 border border-gray-200 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 disabled:opacity-50 flex items-center justify-center"
+                >
+                  {isSubmitting ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    'Publicar Matéria'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

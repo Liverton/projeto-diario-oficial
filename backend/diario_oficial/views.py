@@ -15,4 +15,4 @@ class MateriaViewSet(viewsets.ModelViewSet):
     queryset = Materia.objects.all()
     serializer_class = MateriaSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ["titulo", "conteudo", "categoria"]
+    search_fields = ["titulo", "conteudo", "setor"]
