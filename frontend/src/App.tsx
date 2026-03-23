@@ -15,6 +15,7 @@ interface Edicao {
   id: number;
   numero: number;
   data_publicacao: string;
+  tipo: 'Ordinária' | 'Extraordinária' | 'Errata';
   esta_aberta: boolean;
   materias: Materia[];
 }
@@ -22,9 +23,10 @@ interface Edicao {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
   const [edicoes, setEdicoes] = useState<Edicao[]>([]);
-  const [loading, setLoading] = useState(false); // Começa como false para não travar a tela de login
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Estados para Matéria
   const [edicaoSelecionada, setEdicaoSelecionada] = useState<Edicao | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formMateria, setFormMateria] = useState({
@@ -32,15 +34,18 @@ function App() {
     conteudo: '',
     setor: 'Recursos Humanos'
   });
+  
+  // Estados para Nova Edição
+  const [showEdicaoForm, setShowEdicaoForm] = useState(false);
+  const [formEdicao, setFormEdicao] = useState({
+    data_publicacao: new Date().toISOString().split('T')[0],
+    tipo: 'Ordinária' as Edicao['tipo']
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [convertError, setConvertError] = useState<string | null>(null);
-
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('token');
-    setEdicoes([]);
-    setIsAuthenticated(false);
-  }, []);
+  const [edicaoError, setEdicaoError] = useState<string | null>(null);
 
   const fetchEdicoes = useCallback((showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -55,7 +60,13 @@ function App() {
       .finally(() => {
         setLoading(false);
       });
-  }, [handleLogout]);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    setEdicoes([]);
+    setIsAuthenticated(false);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -86,7 +97,6 @@ function App() {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     .then(res => {
-      console.log('Conversão realizada:', res.data.html);
       setFormMateria(prev => ({ ...prev, conteudo: res.data.html }));
     })
     .catch(err => {
@@ -97,6 +107,30 @@ function App() {
       setIsConverting(false);
       e.target.value = '';
     });
+  };
+
+  const handleSubmitEdicao = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEdicaoError(null);
+    setIsSubmitting(true);
+
+    api.post('edicoes/', formEdicao)
+      .then(() => {
+        setShowEdicaoForm(false);
+        setFormEdicao({
+          data_publicacao: new Date().toISOString().split('T')[0],
+          tipo: 'Ordinária'
+        });
+        fetchEdicoes(false);
+      })
+      .catch(err => {
+        console.error("Erro ao criar edição:", err);
+        const detail = err.response?.data?.data_publicacao || err.response?.data?.numero || "Erro ao criar edição.";
+        setEdicaoError(Array.isArray(detail) ? detail[0] : detail);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleSubmitMateria = (e: React.FormEvent) => {
@@ -133,12 +167,10 @@ function App() {
     });
   }, [searchTerm, edicoes]);
 
-  // Se não estiver autenticado, mostramos a tela de login imediatamente
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;
   }
 
-  // Se estiver autenticado e carregando mas sem dados, mostra loading cleaner
   if (loading && edicoes.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -154,13 +186,21 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50/30 py-12 px-4 sm:px-6 lg:px-8 transition-opacity duration-300">
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-16 relative">
-          <div className="absolute top-0 right-0">
+          <div className="absolute top-0 right-0 flex items-center space-x-4">
+            <button
+              onClick={() => setShowEdicaoForm(true)}
+              className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Nova Edição</span>
+            </button>
             <button
               onClick={handleLogout}
-              className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all flex items-center space-x-2 group"
+              className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
               title="Sair do Sistema"
             >
-              <span className="text-xs font-bold uppercase tracking-widest hidden sm:block">Sair</span>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
@@ -173,12 +213,7 @@ function App() {
           <h1 className="text-5xl font-black text-gray-900 tracking-tight mb-2">
             Diário Oficial <span className="text-indigo-600">DPES</span>
           </h1>
-          <p className="text-xs font-bold text-indigo-400 uppercase tracking-[0.3em] mb-6">
-            Área do Servidor
-          </p>
-          <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-            Portal de transparência para acompanhamento de edições e publicações oficiais da Defensoria Pública.
-          </p>
+          <p className="text-xs font-bold text-indigo-400 uppercase tracking-[0.3em] mb-6">Área do Servidor</p>
         </header>
 
         <div className="mb-10">
@@ -217,6 +252,9 @@ function App() {
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <span className="text-2xl font-black text-indigo-600">#{edicao.numero}</span>
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-500 uppercase tracking-tighter shadow-sm">
+                          {edicao.tipo}
+                        </span>
                         <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
                         <span className="text-gray-500 font-semibold">
                           {new Date(edicao.data_publicacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -255,12 +293,6 @@ function App() {
                             Lançar Matéria
                           </button>
                         )}
-                        <button className="text-sm font-semibold text-gray-600 hover:text-indigo-600 flex items-center justify-end transition-colors">
-                          Ver Edição
-                          <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -273,6 +305,75 @@ function App() {
         </div>
       </div>
 
+      {/* Modal de Nova Edição */}
+      {showEdicaoForm && (
+        <div className="fixed inset-0 z-[60] overflow-hidden flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md transition-opacity" onClick={() => setShowEdicaoForm(false)}></div>
+          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl relative overflow-hidden animate-slide-in">
+            <div className="p-8 bg-indigo-600 text-white">
+              <h2 className="text-3xl font-black">Nova Edição</h2>
+              <p className="text-indigo-100 text-sm mt-1">Configure os dados da nova publicação</p>
+            </div>
+            
+            <form onSubmit={handleSubmitEdicao} className="p-8 space-y-6">
+              {edicaoError && (
+                <div className="p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100 flex items-center space-x-2">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{edicaoError}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Data de Publicação</label>
+                  <input 
+                    type="date" required
+                    className="w-full px-5 py-4 bg-gray-100 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-gray-800"
+                    value={formEdicao.data_publicacao}
+                    onChange={e => setFormEdicao({...formEdicao, data_publicacao: e.target.value})}
+                  />
+                  <p className="mt-2 text-[10px] text-gray-400 font-medium">O número da edição será gerado automaticamente.</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tipo de Edição</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['Ordinária', 'Extraordinária', 'Errata'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setFormEdicao({...formEdicao, tipo: type})}
+                      className={`py-3 px-2 rounded-xl text-[10px] font-black uppercase tracking-tighter border-2 transition-all ${
+                        formEdicao.tipo === type 
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' 
+                          : 'bg-white border-gray-100 text-gray-400 hover:border-indigo-200'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 flex space-x-3">
+                <button type="button" onClick={() => setShowEdicaoForm(false)} className="flex-1 px-6 py-4 border border-gray-100 text-gray-400 font-bold rounded-2xl hover:bg-gray-50 transition-all">Cancelar</button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="flex-1 px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Criando...' : 'Criar Edição'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Slide-over de Lançamento de Matéria */}
       {showForm && edicaoSelecionada && (
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" onClick={() => setShowForm(false)}></div>
@@ -299,7 +400,6 @@ function App() {
                   onChange={e => setFormMateria({...formMateria, titulo: e.target.value})}
                 />
               </div>
-              {/* Restante do formulário mantido conforme anterior... */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Setor</label>
                 <select 
