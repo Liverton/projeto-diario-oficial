@@ -1,6 +1,7 @@
 import os
 import environ  # Importa o django-environ que instalamos via poetry
 from pathlib import Path
+from datetime import timedelta
 
 # Inicializa o environ
 env = environ.Env(DEBUG=(bool, False))  # Define False como padrão para segurança
@@ -29,6 +30,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "diario_oficial",
+    "authentication",
 ]
 
 MIDDLEWARE = [
@@ -114,3 +116,21 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOW_ALL_ORIGINS = True
+
+# --- Autenticação JWT do Servidor ---
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ),
+}
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
