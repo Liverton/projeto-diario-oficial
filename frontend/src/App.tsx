@@ -32,6 +32,40 @@ function App() {
     setor: 'Recursos Humanos'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.toLowerCase().split('.').pop();
+    if (ext !== 'docx' && ext !== 'odt') {
+      setConvertError('Formato inválido. Use apenas .docx ou .odt');
+      return;
+    }
+
+    setConvertError(null);
+    setIsConverting(true);
+    const formData = new FormData();
+    formData.append('arquivo', file);
+
+    api.post('converter-documento/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    .then(res => {
+      setFormMateria(prev => ({ ...prev, conteudo: res.data.html }));
+    })
+    .catch(err => {
+      const msg = err.response?.data?.erro || 'Falha ao converter o arquivo.';
+      setConvertError(msg);
+    })
+    .finally(() => {
+      setIsConverting(false);
+      // Limpa o input para permitir importar o mesmo arquivo novamente
+      e.target.value = '';
+    });
+  };
 
   const fetchEdicoes = (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -329,14 +363,63 @@ function App() {
               </div>
 
               <div className="flex-1 flex flex-col">
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Conteúdo</label>
-                <textarea 
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wider">Conteúdo</label>
+                  <label
+                    className={`cursor-pointer inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                      isConverting
+                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                        : 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+                    }`}
+                  >
+                    {isConverting ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Convertendo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        <span>Importar .docx / .odt</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept=".docx,.odt"
+                      className="hidden"
+                      disabled={isConverting}
+                      onChange={handleFileImport}
+                    />
+                  </label>
+                </div>
+
+                {convertError && (
+                  <div className="mb-2 flex items-center space-x-2 px-3 py-2 bg-red-50 text-red-600 text-xs font-medium rounded-lg border border-red-100">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>{convertError}</span>
+                  </div>
+                )}
+
+                <textarea
                   required
-                  className="flex-1 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all min-h-[300px] resize-none"
-                  placeholder="Descreva aqui o conteúdo completo da portaria ou informativo..."
+                  className={`flex-1 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all min-h-[280px] resize-none font-mono text-sm ${
+                    isConverting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  placeholder="Escreva o conteúdo aqui, ou importe um arquivo .docx / .odt..."
                   value={formMateria.conteudo}
+                  disabled={isConverting}
                   onChange={e => setFormMateria({...formMateria, conteudo: e.target.value})}
                 ></textarea>
+
+                {formMateria.conteudo && (
+                  <p className="mt-1.5 text-xs text-gray-400">
+                    {formMateria.conteudo.startsWith('<') ? '📄 Conteúdo HTML importado — editável acima.' : `${formMateria.conteudo.length} caracteres`}
+                  </p>
+                )}
               </div>
 
               <div className="pt-6 border-t border-gray-100 flex space-x-4">
