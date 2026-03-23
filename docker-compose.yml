@@ -22,5 +22,15 @@ services:
     environment:
       - DATABASE_URL=postgres://dpes_admin:dpes_senha_forte@db:5432/diario_db
 
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
