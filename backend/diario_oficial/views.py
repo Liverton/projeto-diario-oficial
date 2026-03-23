@@ -39,27 +39,54 @@ class ConvertDocumentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        html = None
         nome = arquivo.name.lower()
         if nome.endswith(".docx"):
             try:
                 html = docx_to_html(arquivo)
-            except Exception as e:
+            except Exception:
                 return Response(
-                    {"erro": f"Falha ao processar DOCX: {str(e)}"},
+                    {
+                        "erro": (
+                            "Não foi possível processar o arquivo .docx. "
+                            "Verifique se o arquivo não está corrompido e tente novamente."
+                        )
+                    },
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 )
         elif nome.endswith(".odt"):
             try:
                 html = odt_to_html(arquivo)
-            except Exception as e:
+            except Exception:
                 return Response(
-                    {"erro": f"Falha ao processar ODT: {str(e)}"},
+                    {
+                        "erro": (
+                            "Não foi possível processar o arquivo .odt. "
+                            "Verifique se o arquivo não está corrompido e tente novamente."
+                        )
+                    },
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 )
         else:
             return Response(
-                {"erro": "Formato não suportado. Envie um arquivo .docx ou .odt."},
+                {
+                    "erro": (
+                        "Formato não suportado. "
+                        "Por favor, envie um arquivo no formato .docx (Word) ou .odt (LibreOffice)."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not html:
+            return Response(
+                {
+                    "erro": (
+                        "O arquivo foi lido, mas nenhum conteúdo de texto foi encontrado no corpo do documento. "
+                        "Tente copiar e colar o texto manualmente caso o arquivo tenha um layout muito complexo."
+                    )
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
         return Response({"html": html}, status=status.HTTP_200_OK)

@@ -54,6 +54,7 @@ function App() {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     .then(res => {
+      console.log('Conversão realizada:', res.data.html);
       setFormMateria(prev => ({ ...prev, conteudo: res.data.html }));
     })
     .catch(err => {
