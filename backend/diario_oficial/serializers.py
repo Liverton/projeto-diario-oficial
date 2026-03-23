@@ -5,7 +5,7 @@ from .models import Edicao, Materia
 class MateriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Materia
-        fields = ["id", "titulo", "conteudo", "categoria", "criado_em"]
+        fields = ["id", "edicao", "titulo", "conteudo", "setor", "criado_em"]
 
 
 class EdicaoSerializer(serializers.ModelSerializer):
