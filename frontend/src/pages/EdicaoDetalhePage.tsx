@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -19,6 +19,28 @@ interface Edicao {
   materias: Materia[];
 }
 
+const EditorVisual = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder?: string }) => {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      if (editorRef.current.innerHTML !== value) {
+        editorRef.current.innerHTML = value;
+      }
+    }
+  }, [value]);
+
+  return (
+    <div
+      ref={editorRef}
+      contentEditable
+      className="flex-1 w-full px-5 py-4 bg-white border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 min-h-[250px] overflow-y-auto prose prose-sm max-w-none outline-none cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 shadow-inner"
+      data-placeholder={placeholder}
+      onInput={(e) => onChange(e.currentTarget.innerHTML)}
+    />
+  );
+};
+
 function EdicaoDetalhePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -28,7 +50,9 @@ function EdicaoDetalhePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [convertError, setConvertError] = useState<string | null>(null);
-  
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // Estados para Expansão e Edição
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -106,6 +130,11 @@ function EdicaoDetalhePage() {
     e.preventDefault();
     if (!edicao) return;
 
+    if (!formMateria.conteudo || !formMateria.conteudo.trim() || formMateria.conteudo === '<br>') {
+      alert("O conteúdo da matéria não pode estar vazio.");
+      return;
+    }
+
     setIsSubmitting(true);
     const data = {
       ...formMateria,
@@ -144,6 +173,48 @@ function EdicaoDetalhePage() {
     }
   };
 
+  const handlePreviewPDF = async () => {
+    if (!edicao) return;
+    setIsDownloading(true);
+    try {
+      const response = await api.get(`edicoes/${edicao.id}/download_pdf/`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      setPreviewUrl(url);
+      setShowPreview(true);
+    } catch (error) {
+      console.error("Erro ao gerar prévia do PDF:", error);
+      alert("Não foi possível gerar a prévia do PDF.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setShowPreview(false);
+  };
+
+  const handleDownloadMateriaPDF = async (materiaId: number) => {
+    try {
+      const response = await api.get(`materias/${materiaId}/download_pdf/`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `materia_${materiaId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Erro ao baixar PDF da matéria:", error);
+      alert("Não foi possível gerar o PDF da matéria.");
+    }
+  };
+
   if (loading) {
 
     return (
@@ -177,6 +248,22 @@ function EdicaoDetalhePage() {
             }`}>
               {edicao.esta_aberta ? 'ABERTA' : 'FECHADA'}
             </span>
+            <button
+              onClick={handlePreviewPDF}
+              disabled={isDownloading}
+              className="flex items-center space-x-2 px-4 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full text-xs font-bold hover:bg-indigo-100 transition-all shadow-sm"
+              title="Pré-visualizar edição completa em PDF"
+            >
+              {isDownloading ? (
+                <div className="w-3 h-3 border-2 border-indigo-700 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+              <span>{isDownloading ? 'Gerando...' : 'PDF Prévia'}</span>
+            </button>
           </div>
         </header>
 
@@ -246,6 +333,18 @@ function EdicaoDetalhePage() {
                           </svg>
                         </button>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadMateriaPDF(m.id);
+                        }}
+                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        title="Baixar matéria em PDF"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </button>
                       {edicao.esta_aberta && (
                         <button
                           onClick={(e) => {
@@ -292,7 +391,7 @@ function EdicaoDetalhePage() {
       {showForm && (
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" onClick={() => setShowForm(false)}></div>
-          <div className="absolute inset-y-0 right-0 max-w-lg w-full bg-white shadow-2xl flex flex-col animate-slide-in">
+          <div className="absolute inset-y-0 right-0 max-w-3xl w-full bg-white shadow-2xl flex flex-col animate-slide-in">
             <div className="px-8 py-6 bg-indigo-600 text-white flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold">{editingId ? 'Editar Matéria' : 'Lançar Matéria'}</h2>
@@ -351,12 +450,12 @@ function EdicaoDetalhePage() {
                   </label>
                 </div>
                 {convertError && <p className="text-red-500 text-xs mb-2">{convertError}</p>}
-                <textarea
-                  required
-                  className="flex-1 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 min-h-[250px] font-mono text-sm outline-none"
+                
+                <EditorVisual
+                  placeholder="Cole o conteúdo da matéria aqui, ou importe um .docx / .odt acima."
                   value={formMateria.conteudo}
-                  onChange={e => setFormMateria({...formMateria, conteudo: e.target.value})}
-                ></textarea>
+                  onChange={val => setFormMateria({...formMateria, conteudo: val})}
+                />
               </div>
               <div className="pt-6 border-t flex space-x-4">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-6 py-4 border border-gray-200 text-gray-600 font-bold rounded-2xl">Cancelar</button>
@@ -365,6 +464,45 @@ function EdicaoDetalhePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Prévia de PDF */}
+      {showPreview && previewUrl && (
+        <div className="fixed inset-0 z-[100] overflow-hidden flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-md" onClick={closePreview}></div>
+          <div className="bg-white w-full max-w-5xl h-[90vh] rounded-[32px] shadow-2xl relative overflow-hidden flex flex-col animate-slide-in">
+            <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Prévia do Diário Oficial</h3>
+                <p className="text-sm text-gray-500">Edição #{edicao.numero} - {edicao.data_publicacao.split('-').reverse().join('/')}</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <a
+                  href={previewUrl}
+                  download={`diario_oficial_${edicao.numero}.pdf`}
+                  className="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+                >
+                  Baixar PDF
+                </a>
+                <button 
+                  onClick={closePreview} 
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 bg-gray-100">
+              <iframe 
+                src={`${previewUrl}#toolbar=0`} 
+                className="w-full h-full border-none"
+                title="PDF Preview"
+              ></iframe>
+            </div>
           </div>
         </div>
       )}

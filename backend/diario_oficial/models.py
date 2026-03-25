@@ -8,17 +8,14 @@ class Edicao(models.Model):
         ("Errata", "Errata"),
     ]
     numero = models.PositiveIntegerField(
-        unique=True, 
-        blank=True, 
-        null=True, 
-        verbose_name="Número da Edição"
+        unique=True, blank=True, null=True, verbose_name="Número da Edição"
     )
     data_publicacao = models.DateField(verbose_name="Data de Publicação")
     tipo = models.CharField(
-        max_length=20, 
-        choices=TIPO_CHOICES, 
-        default="Ordinária", 
-        verbose_name="Tipo de Edição"
+        max_length=20,
+        choices=TIPO_CHOICES,
+        default="Ordinária",
+        verbose_name="Tipo de Edição",
     )
     esta_aberta = models.BooleanField(default=True, verbose_name="Edição em Aberto?")
 
@@ -29,7 +26,7 @@ class Edicao(models.Model):
     def save(self, *args, **kwargs):
         if self.numero is None:
             # Pega o maior número atual ou começa em 1
-            max_num = Edicao.objects.aggregate(models.Max('numero'))['numero__max'] or 0
+            max_num = Edicao.objects.aggregate(models.Max("numero"))["numero__max"] or 0
             self.numero = max_num + 1
         super().save(*args, **kwargs)
 

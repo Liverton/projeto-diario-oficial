@@ -39,7 +39,9 @@ class EdicaoSerializer(serializers.ModelSerializer):
 
             if qs.exists():
                 raise serializers.ValidationError(
-                    {"data_publicacao": "Já existe uma edição ORDINÁRIA cadastrada para esta data."}
+                    {
+                        "data_publicacao": "Já existe uma edição ORDINÁRIA cadastrada para esta data."
+                    }
                 )
 
         return data

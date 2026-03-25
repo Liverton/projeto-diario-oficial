@@ -55,6 +55,7 @@ function EdicoesPage({ onLogout }: EdicoesPageProps) {
   }, [onLogout]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchEdicoes();
   }, [fetchEdicoes]);
 
