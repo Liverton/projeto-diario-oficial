@@ -1,101 +1,83 @@
-# 📘 Guia de Desenvolvimento e Fluxo de Trabalho (Diário Oficial - DPES)
+# 📘 Guia de Desenvolvimento (Diário Oficial - DPES)
 
 Este guia documenta a infraestrutura técnica, as ferramentas de qualidade e o fluxo de trabalho (workflow) estabelecidos para o projeto do Diário Oficial da Defensoria Pública (DPES).
 
 ---
 
-## 🏗️ 1. Infraestrutura e Dependências
+## 🏗️ 1. Arquitetura e Estrutura
 
 ### **Backend (Django + Poetry)**
-O backend utiliza **Django 4.2** com foco em APIs robustas e seguras.
-*   **Django REST Framework (DRF):** Biblioteca padrão para construção de APIs. Facilita a serialização de dados e a criação de endpoints padronizados.
-*   **Django-CORS-Headers:** Essencial para permitir que o Frontend (React) se comunique com o Backend (Django), já que estão em origens/portas diferentes.
-*   **Django-Environ:** Gerencia variáveis de ambiente (como `SECRET_KEY` e `DATABASE_URL`) através de um arquivo `.env`, mantendo segredos fora do histórico do Git.
-*   **Poetry:** Gerenciador de dependências moderno que utiliza o `pyproject.toml`. Ele garante que todos os desenvolvedores usem exatamente as mesmas versões das bibliotecas.
+- **Versão:** Django 4.2
+- **Gerenciador:** Poetry (usa `pyproject.toml` para garantir versões exatas).
+- **Módulos Principais:**
+  - `authentication`: Gerenciamento de tokens JWT (SimpleJWT). Endpoints em `/api/auth/`.
+  - `diario_oficial`: Lógica principal das portarias e edições.
+  - `core`: Configurações globais do projeto.
 
 ### **Frontend (React + Vite + TypeScript)**
-*   **Vite:** Ferramenta de build ultra-rápida.
-*   **TypeScript:** Adiciona tipagem estática ao JavaScript, prevenindo erros comuns durante o desenvolvimento.
+- **Vite:** Build ultra-rápido.
+- **TypeScript:** Tipagem estática para segurança do código.
+- **Tailwind CSS:** (Se configurado) Estilização via classes utilitárias.
 
 ---
 
-## 💎 2. Qualidade de Código (Linting e Formatação)
+## 💎 2. Qualidade de Código
 
-Para manter o código padronizado e livre de erros bobos, utilizamos três ferramentas principais:
+Para manter o código padronizado:
 
-1.  **Black (Personal Trainer do Código Python):**
-    *   **O que faz:** Formata o código automaticamente. Ele decide onde quebrar linhas, como usar aspas e espaços.
-    *   **Comando:** `cd backend && poetry run black .`
-2.  **Flake8 (O Fiscal de Estilo):**
-    *   **O que faz:** Verifica se você seguiu as boas práticas (PEP 8). Ele avisa sobre imports não utilizados, variáveis não declaradas ou complexidade excessiva.
-    *   **Configuração:** Ajustamos o `.flake8` para ser compatível com o Black (máximo de 88 caracteres por linha).
-    *   **Comando:** `cd backend && poetry run flake8 .`
-3.  **ESLint (Qualidade no React):**
-    *   **O que faz:** Faz o mesmo que o Flake8, mas para o Frontend. Verifica regras de hooks do React e boas práticas de TypeScript.
-    *   **Comando:** `cd frontend && npm run lint`
+1. **Black (Backend):** Formatação automática.
+   - `cd backend && poetry run black .`
+2. **Flake8 (Backend):** Linter de estilo (PEP 8).
+   - `cd backend && poetry run flake8 .`
+3. **ESLint (Frontend):** Qualidade React/TypeScript.
+   - `cd frontend && npm run lint`
 
 ---
 
-## 🚀 3. DevOps e Automação (CI/CD)
+## 🚀 3. CI/CD e Automação
 
-### **GitHub Actions (Integração Contínua)**
-Localizado em `.github/workflows/ci.yml`.
-Toda vez que um código é enviado para o GitHub através de um **Pull Request**, um servidor automatizado:
-1.  Sobe um ambiente Linux limpo.
-2.  Instala todas as dependências do projeto.
-3.  Roda o **Flake8** e o **ESLint**.
-4.  **Resultado:** Se houver erros, o GitHub impede o "Merge" (união do código) até que o erro seja corrigido. Isso garante que a branch `main` esteja sempre estável.
+### **GitHub Actions**
+Arquivo: `.github/workflows/ci.yml`.
+Bloqueia Merges se o lint (Flake8/ESLint) falhar no Pull Request.
 
-### **Template de Pull Request**
-Localizado em `.github/pull_request_template.md`.
-Ao criar um pedido de integração de código, o sistema preenche um formulário automático. Isso força o desenvolvedor a refletir sobre:
-*   O que foi feito?
-*   Como isso impacta o sistema?
-*   Como o revisor pode testar?
+### **Template de PR**
+Arquivo: `.github/pull_request_template.md`.
+Deve ser preenchido detalhadamente para facilitar a revisão.
 
 ---
 
-## 🔄 4. Fluxo de Trabalho Diário (Git Workflow)
+## 🔄 4. Fluxo Git (Branching & Commits)
 
-Para trabalhar de forma profissional, siga estes passos:
+### **Branches**
+NUNCA use a `main` diretamente. Use prefixos:
+- `feature/`: Novas funções.
+- `fix/`: Correções.
+- `docs/`: Documentação.
 
-### **Padrão de Branches**
-Nunca trabalhe na branch `main`. Crie branches temporárias:
-*   `feature/nome-da-func`: Para novas funcionalidades.
-*   `fix/nome-do-bug`: Para correções de erros.
-*   `docs/mudanca`: Para documentação.
-
-### **Padrão de Commits (Conventional Commits)**
-Use mensagens que descrevam a intenção da mudança:
-*   `feat: adiciona filtro por data nas portarias`
-*   `fix: corrige erro de autenticação na API`
-*   `style: melhora design dos cards no frontend`
-
----
-
-## 🌐 5. Desenvolvimento Local e Troubleshooting
-
-### **Problema de Proxy (Importante!)**
-Se você estiver em um ambiente com Proxy (como o da DPES), o navegador pode tentar buscar o `localhost` fora da rede, causando erros de conexão.
-*   **Solução:** Sempre garanta que a variável `NO_PROXY` inclua o local:
-    ```bash
-    export NO_PROXY="localhost,127.0.0.1"
-    ```
-*   **No Navegador:** Adicione `localhost` às exceções de proxy nas configurações do sistema.
-
-### **Comandos do Dia a Dia**
-*   **Subir tudo:** `docker compose up -d`
-*   **Entrar no Backend:** `cd backend && poetry shell`
-*   **Rodar Migrations:** `docker compose exec backend python manage.py migrate`
-*   **Rodar Frontend:** `cd frontend && npm run dev`
+### **Commits (Conventional Commits)**
+Use mensagens descritivas:
+- `feat: ...`
+- `fix: ...`
+- `style: ...`
+- `refactor: ...`
 
 ---
 
-## ✅ Resumo do Checklist do Desenvolvedor
-1.  [ ] Criou uma branch nova para a tarefa.
-2.  [ ] Desenvolveu a funcionalidade.
-3.  [ ] Rodou o `black` e `flake8` no backend.
-4.  [ ] Rodou o `lint` no frontend.
-5.  [ ] Fez o commit com mensagem clara (ex: `feat: ...`).
-6.  [ ] Abriu o Pull Request e preencheu o template.
-7.  [ ] Esperou o "check verde" do GitHub Actions.
+## 🌐 5. Troubleshooting e Proxy
+
+### **Proxy DPES**
+Se houver erro de conexão com o localhost, garanta:
+```bash
+export NO_PROXY="localhost,127.0.0.1"
+```
+
+---
+
+## ✅ Checklist do Desenvolvedor
+1. [ ] Criei branch com prefixo correto.
+2. [ ] Formatei o backend com `black`.
+3. [ ] Verifiquei lints (`flake8` e `npm lint`).
+4. [ ] Fiz commit seguindo o padrão Conventional.
+5. [ ] Abri o PR usando o template atualizado.
+6. [ ] Garanti que o GitHub Actions passou (check verde).
+

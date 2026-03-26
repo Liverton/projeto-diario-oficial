@@ -1,17 +1,37 @@
-## 📝 Descrição
-Uma visão geral do que foi alterado.
+## 🎯 Motivação e Contexto
+<!-- Por que esta mudança é necessária? Qual problema ela resolve? -->
+<!-- Se ela corrige um bug ou implementa uma funcionalidade, linke a issue aqui: Fixes #123 -->
 
-## 🚀 O que mudou?
-- [ ] Backend: (descreva mudanças na API/Banco)
-- [ ] Frontend: (descreva mudanças em UI/Lógica)
+## 🛠️ Tipo de Alteração
+- [ ] ✨ Funcionalidade (New feature)
+- [ ] 🐛 Correção de bug (Bug fix)
+- [ ] ♻️ Refatoração (Refactor)
+- [ ] 📝 Documentação (Documentation)
+- [ ] 🎨 Estilo/UI (Style)
+- [ ] 🧪 Teste (Test)
+- [ ] 🚀 Performance
+
+## 📝 Descrição das Mudanças
+<!-- Descreva o que foi alterado e como a solução foi implementada -->
+- [ ] **Backend:** 
+- [ ] **Frontend:** 
+
+## 📸 Screenshots / GIFs (Opcional)
+<!-- Se houver mudanças na interface, adicione imagens ou vídeos aqui -->
 
 ## 🧪 Como Testar?
-1. Rode `docker compose up -d`
-2. No frontend, execute `npm run dev`
-3. Vá em: http://localhost:5173 e verifique se...
+<!-- Passo a passo para reproduzir as alterações e validar o comportamento -->
+1. Suba o ambiente: `docker compose up -d`
+2. Backend (se necessário): `cd backend && poetry shell`
+3. Frontend: `cd frontend && npm run dev`
+4. Acesse: http://localhost:5173 e siga os passos:
+   - 
 
 ## ✅ Checklist do Desenvolvedor
-- [ ] Rodei os testes locais (`poetry run flake8` e `npm run lint`)
-- [ ] O código segue os padrões do Conventional Commits
-- [ ] Não há erros no console do navegador
-- [ ] A branch foi sincronizada com a `main` antes do envio
+- [ ] 🐍 Backend: Formatei com `black .` e verifiquei com `flake8 .`
+- [ ] ⚛️ Frontend: Executei `npm run lint` e não há erros
+- [ ] 💬 Commits: Seguem o padrão **Conventional Commits**
+- [ ] 🌿 Branch: O nome segue o padrão (ex: `feature/`, `fix/`)
+- [ ] 🔄 Sync: A branch está atualizada com a `main`
+- [ ] 💻 Teste: Verifiquei o console do navegador e logs do servidor
+

@@ -1,10 +1,12 @@
+from django.http import HttpResponse
 from rest_framework import viewsets, filters, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
+from rest_framework.decorators import action
 from .models import Edicao, Materia
 from .serializers import EdicaoSerializer, MateriaSerializer
-from .converters import docx_to_html, odt_to_html
+from .converters import docx_to_html, odt_to_html, html_to_pdf
 
 
 class EdicaoViewSet(viewsets.ModelViewSet):
@@ -14,12 +16,45 @@ class EdicaoViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ["numero", "materias__titulo", "materias__conteudo"]
 
+    @action(detail=True, methods=["get"])
+    def download_pdf(self, request, pk=None):
+        edicao = self.get_object()
+        materias = edicao.materias.all().values("titulo", "conteudo")
+
+        pdf_buffer = html_to_pdf(
+            list(materias),
+            edition_number=edicao.numero,
+            publication_date=edicao.data_publicacao.strftime("%d/%m/%Y"),
+            title=f"DIÁRIO OFICIAL - {edicao.tipo.upper()}",
+        )
+
+        response = HttpResponse(pdf_buffer, content_type="application/pdf")
+        filename = f"diario_oficial_edicao_{edicao.numero}.pdf"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
 
 class MateriaViewSet(viewsets.ModelViewSet):
     queryset = Materia.objects.all()
     serializer_class = MateriaSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["titulo", "conteudo", "setor"]
+
+    @action(detail=True, methods=["get"])
+    def download_pdf(self, request, pk=None):
+        materia = self.get_object()
+
+        pdf_buffer = html_to_pdf(
+            [{"titulo": materia.titulo, "conteudo": materia.conteudo}],
+            edition_number=materia.edicao.numero,
+            publication_date=materia.edicao.data_publicacao.strftime("%d/%m/%Y"),
+            title="MATÉRIA AVULSA",
+        )
+
+        response = HttpResponse(pdf_buffer, content_type="application/pdf")
+        filename = f"materia_{materia.id}.pdf"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
 
 class ConvertDocumentView(APIView):
